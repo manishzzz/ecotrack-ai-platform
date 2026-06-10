@@ -1,3 +1,9 @@
 {
-  "buildCommand": "npm run build"
+  "buildCommand": "npm run build",
+  "rewrites": [
+    {
+      "source": "/api/:path*",
+      "destination": "https://ecotrack-ai-platform-api.vercel.app/api/:path*"
+    }
+  ]
 }
