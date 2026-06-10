@@ -2,7 +2,8 @@ import { Router } from "express";
 import { z } from "zod";
 import { requireAuth } from "../middleware/auth.js";
 import { asyncHandler } from "../utils/async-handler.js";
-import { clearAuthCookie, setAuthCookie } from "../utils/auth-cookie.js";
+import { AUTH_COOKIE_NAME, clearAuthCookie, setAuthCookie } from "../utils/auth-cookie.js";
+import { verifyToken } from "../utils/jwt.js";
 import { isStrongPassword } from "../utils/password.js";
 import {
   getUserById,
@@ -94,11 +95,30 @@ authRouter.post(
 
 authRouter.get(
   "/me",
-  requireAuth,
   asyncHandler(async (request, response) => {
-    const user = await getUserById(request.auth!.userId);
+    const header = request.headers.authorization;
+    const headerToken = header?.startsWith("Bearer ") ? header.replace("Bearer ", "") : null;
+    const cookieToken = request.cookies?.[AUTH_COOKIE_NAME];
+    const token = headerToken ?? cookieToken;
+
+    if (!token) {
+      response.json({ user: null });
+      return;
+    }
+
+    let userId: string;
+    try {
+      userId = verifyToken(token).sub;
+    } catch {
+      clearAuthCookie(response);
+      response.json({ user: null });
+      return;
+    }
+
+    const user = await getUserById(userId);
     if (!user) {
-      response.status(404).json({ message: "User not found." });
+      clearAuthCookie(response);
+      response.json({ user: null });
       return;
     }
 

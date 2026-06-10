@@ -2,7 +2,7 @@ import cookieParser from "cookie-parser";
 import compression from "compression";
 import cors from "cors";
 import express from "express";
-import rateLimit from "express-rate-limit";
+import rateLimit, { ipKeyGenerator } from "express-rate-limit";
 import helmet from "helmet";
 import morgan from "morgan";
 import { env } from "./config/env.js";
@@ -20,6 +20,21 @@ import { publicRouter } from "./routes/public.routes.js";
 import { errorHandler, notFound } from "./middleware/error.js";
 
 export const app = express();
+app.set("trust proxy", 1);
+
+const getRateLimitKey = (request: express.Request) => {
+  const forwardedFor = request.headers["x-forwarded-for"];
+
+  if (typeof forwardedFor === "string" && forwardedFor.trim()) {
+    return forwardedFor.split(",")[0]?.trim() || "anonymous";
+  }
+
+  if (Array.isArray(forwardedFor) && forwardedFor[0]) {
+    return forwardedFor[0];
+  }
+
+  return request.ip ? ipKeyGenerator(request.ip) : "anonymous";
+};
 
 app.use(
   cors({
@@ -44,6 +59,7 @@ app.use(
   rateLimit({
     windowMs: 1000 * 60 * 15,
     limit: 250,
+    keyGenerator: getRateLimitKey,
     standardHeaders: true,
     legacyHeaders: false
   })

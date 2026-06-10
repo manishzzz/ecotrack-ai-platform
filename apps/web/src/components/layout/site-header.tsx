@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useEffect, useState } from "react";
 import { Leaf, MoonStar, SunMedium } from "lucide-react";
 import { useTheme } from "next-themes";
 import { useAuth } from "@/components/providers/auth-provider";
@@ -10,6 +11,11 @@ import { Button } from "@/components/ui/button";
 export function SiteHeader() {
   const { resolvedTheme, setTheme } = useTheme();
   const { user, logout, loading } = useAuth();
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   return (
     <header className="sticky top-0 z-50 border-b border-white/10 bg-background/70 backdrop-blur-xl">
@@ -39,7 +45,7 @@ export function SiteHeader() {
             onClick={() => setTheme(resolvedTheme === "dark" ? "light" : "dark")}
             aria-label="Toggle theme"
           >
-            {resolvedTheme === "dark" ? <SunMedium className="h-4 w-4" /> : <MoonStar className="h-4 w-4" />}
+            {mounted && resolvedTheme === "dark" ? <SunMedium className="h-4 w-4" /> : <MoonStar className="h-4 w-4" />}
           </Button>
           {loading ? null : user ? (
             <>

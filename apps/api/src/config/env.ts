@@ -3,6 +3,13 @@ import { z } from "zod";
 
 dotenv.config();
 
+const trimEnvValue = (value: string | undefined) =>
+  typeof value === "string" ? value.trim() : value;
+
+const normalizedEnv = Object.fromEntries(
+  Object.entries(process.env).map(([key, value]) => [key, trimEnvValue(value)])
+);
+
 const envSchema = z.object({
   PORT: z.coerce.number().default(5000),
   NODE_ENV: z.enum(["development", "test", "production"]).default("development"),
@@ -21,4 +28,4 @@ const envSchema = z.object({
   EMAIL_FROM: z.string().min(1)
 });
 
-export const env = envSchema.parse(process.env);
+export const env = envSchema.parse(normalizedEnv);
