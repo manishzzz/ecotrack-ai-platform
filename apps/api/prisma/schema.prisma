@@ -1,0 +1,211 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  USER
+  ADMIN
+}
+
+enum FoodType {
+  VEGETARIAN
+  MIXED
+  NON_VEGETARIAN
+}
+
+enum ShoppingHabit {
+  LOW
+  MODERATE
+  HIGH
+}
+
+enum ChallengeDifficulty {
+  EASY
+  MEDIUM
+  HARD
+}
+
+enum ProgressStatus {
+  PENDING
+  COMPLETED
+  MISSED
+}
+
+enum RewardType {
+  BADGE
+  POINTS
+  LEVEL
+}
+
+model User {
+  id                  String              @id @default(cuid())
+  name                String
+  email               String              @unique
+  passwordHash        String?
+  avatarUrl           String?
+  provider            String              @default("credentials")
+  role                Role                @default(USER)
+  location            String?
+  sustainabilityGoal  String?
+  points              Int                 @default(0)
+  level               Int                 @default(1)
+  treesSaved          Int                 @default(0)
+  carbonOffsetKg      Float               @default(0)
+  resetToken          String?
+  resetTokenExpiresAt DateTime?
+  createdAt           DateTime            @default(now())
+  updatedAt           DateTime            @updatedAt
+  carbonRecords       CarbonRecord[]
+  challengeProgress   ChallengeProgress[]
+  rewards             Reward[]
+  blogs               Blog[]              @relation("AuthorBlogs")
+  comments            Comment[]
+  predictions         CarbonPrediction[]
+  adminActivities     AdminActivity[]
+  likedBlogs          BlogLike[]
+}
+
+model CarbonRecord {
+  id                    String   @id @default(cuid())
+  userId                String
+  monthLabel            String
+  transportationKg      Float
+  energyKg              Float
+  foodKg                Float
+  lifestyleKg           Float
+  monthlyEmissionKg     Float
+  annualEmissionKg      Float
+  carbonScore           Int
+  carKm                 Float
+  bikeKm                Float
+  publicTransportKm     Float
+  flightKm              Float
+  electricityKwh        Float
+  lpgCylinders          Float
+  acHours               Float
+  foodType              FoodType
+  shoppingHabit         ShoppingHabit
+  plasticUsageKg        Float
+  waterConsumptionLiters Float
+  aiAdvice              String?
+  createdAt             DateTime @default(now())
+  user                  User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+  @@unique([userId, monthLabel])
+}
+
+model Challenge {
+  id           String              @id @default(cuid())
+  title        String
+  description  String
+  category     String
+  difficulty   ChallengeDifficulty
+  pointsReward Int
+  badgeName    String?
+  isDaily      Boolean             @default(true)
+  createdAt    DateTime            @default(now())
+  progress     ChallengeProgress[]
+}
+
+model ChallengeProgress {
+  id          String         @id @default(cuid())
+  userId      String
+  challengeId String
+  status      ProgressStatus @default(PENDING)
+  completedAt DateTime?
+  createdAt   DateTime       @default(now())
+  user        User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  challenge   Challenge      @relation(fields: [challengeId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, challengeId])
+}
+
+model Reward {
+  id          String     @id @default(cuid())
+  userId      String
+  title       String
+  description String
+  type        RewardType
+  value       Int
+  awardedAt   DateTime   @default(now())
+  user        User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Blog {
+  id          String     @id @default(cuid())
+  authorId    String
+  title       String
+  slug        String     @unique
+  excerpt     String
+  content     String
+  coverImage  String?
+  published   Boolean    @default(true)
+  likesCount  Int        @default(0)
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+  author      User       @relation("AuthorBlogs", fields: [authorId], references: [id], onDelete: Cascade)
+  comments    Comment[]
+  likes       BlogLike[]
+}
+
+model Comment {
+  id        String   @id @default(cuid())
+  userId    String
+  blogId    String
+  content   String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  blog      Blog     @relation(fields: [blogId], references: [id], onDelete: Cascade)
+}
+
+model BlogLike {
+  id        String   @id @default(cuid())
+  blogId    String
+  userId    String
+  createdAt DateTime @default(now())
+  blog      Blog     @relation(fields: [blogId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([blogId, userId])
+}
+
+model CarbonPrediction {
+  id              String   @id @default(cuid())
+  userId          String
+  forecastMonths  Int
+  predictedKg     Float
+  confidenceScore Int
+  narrative       String
+  createdAt       DateTime @default(now())
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model OffsetProject {
+  id               String   @id @default(cuid())
+  title            String
+  description      String
+  pricePerKg       Float
+  treesEquivalent  Float
+  totalOffsetKg    Float    @default(0)
+  donationsCount   Int      @default(0)
+  imageUrl         String?
+  createdAt        DateTime @default(now())
+}
+
+model AdminActivity {
+  id          String   @id @default(cuid())
+  userId      String
+  action      String
+  entityType  String
+  entityId    String
+  description String
+  createdAt   DateTime @default(now())
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
